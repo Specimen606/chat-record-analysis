@@ -1,0 +1,795 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>聊天记录分层分析报告 · 成都改善置换服务复盘</title>
+<style>
+:root{
+  --bg:#080b16; --bg2:#0d1224; --card:rgba(255,255,255,.045); --card2:rgba(255,255,255,.07);
+  --line:rgba(255,255,255,.10); --txt:#e8ecf8; --dim:#8e99bb; --dim2:#6b779a;
+  --a1:#7c8cff; --a2:#22d3ee; --a3:#f59e5b; --a4:#f472b6; --ok:#34d399; --warn:#fbbf24; --bad:#f87171;
+  --r:16px; --shadow:0 10px 40px rgba(0,0,0,.45);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:96px}
+body{margin:0;background:
+  radial-gradient(1100px 600px at 12% -8%, rgba(124,140,255,.20), transparent 60%),
+  radial-gradient(900px 520px at 92% 4%, rgba(34,211,238,.14), transparent 62%),
+  var(--bg);
+  color:var(--txt);font:15px/1.75 'PingFang SC','Microsoft YaHei',system-ui,-apple-system,'Segoe UI',sans-serif;
+  -webkit-font-smoothing:antialiased}
+a{color:var(--a2);text-decoration:none}
+.wrap{max-width:1240px;margin:0 auto;padding:0 24px}
+.mono{font-family:'SF Mono',Consolas,'Cascadia Mono',monospace}
+
+/* ---------- HERO ---------- */
+header.hero{padding:64px 0 40px;position:relative;overflow:hidden}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border:1px solid var(--line);
+  border-radius:999px;background:var(--card);color:var(--dim);font-size:12.5px;letter-spacing:.6px}
+.eyebrow b{color:var(--a2);font-weight:600}
+h1{font-size:clamp(30px,4.4vw,50px);line-height:1.2;margin:20px 0 12px;font-weight:800;letter-spacing:-.5px}
+h1 em{font-style:normal;background:linear-gradient(92deg,var(--a1),var(--a2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.lede{color:var(--dim);max-width:760px;font-size:16px}
+.chips{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
+.chip{padding:7px 13px;border:1px solid var(--line);border-radius:10px;background:var(--card);font-size:12.5px;color:var(--dim)}
+.chip b{color:var(--txt);font-weight:600}
+.chip.mono b{font-family:Consolas,monospace}
+
+.hero-grid{display:grid;grid-template-columns:1.35fr .95fr;gap:36px;align-items:center;margin-top:36px}
+@media(max-width:980px){.hero-grid{grid-template-columns:1fr}}
+
+/* pyramid */
+.pyr{display:flex;flex-direction:column;gap:7px;user-select:none}
+.pyr-row{position:relative;display:flex;align-items:center;justify-content:center;height:52px;border-radius:12px;
+  cursor:pointer;transition:.25s;font-weight:600;font-size:14px;color:#0a0e1c;overflow:hidden;
+  box-shadow:0 6px 22px rgba(0,0,0,.35)}
+.pyr-row span.n{position:absolute;left:16px;font-weight:800;opacity:.55;font-size:13px}
+.pyr-row small{font-weight:500;opacity:.72;font-size:11.5px;margin-left:8px}
+.pyr-row:hover{transform:translateY(-3px) scale(1.012);filter:brightness(1.08)}
+.pyr-row.l6{background:linear-gradient(90deg,#fff3c4,#fbbf24)}
+.pyr-row.l5{background:linear-gradient(90deg,#ffd9ec,#f472b6)}
+.pyr-row.l4{background:linear-gradient(90deg,#bbf7e0,#34d399)}
+.pyr-row.l3{background:linear-gradient(90deg,#a5f3fc,#22d3ee)}
+.pyr-row.l2{background:linear-gradient(90deg,#c7d2fe,#818cf8)}
+.pyr-row.l1{background:linear-gradient(90deg,#dbe3ff,#7c8cff)}
+.pyr-cap{color:var(--dim2);font-size:11.5px;text-align:center;margin-top:10px;letter-spacing:.5px}
+
+/* ---------- NAV ---------- */
+nav.bar{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);background:rgba(8,11,22,.82);
+  border-bottom:1px solid var(--line)}
+nav.bar .inner{display:flex;gap:6px;overflow-x:auto;padding:11px 24px;max-width:1240px;margin:0 auto;scrollbar-width:none}
+nav.bar .inner::-webkit-scrollbar{display:none}
+nav.bar a{flex:0 0 auto;padding:8px 15px;border-radius:10px;font-size:13.5px;color:var(--dim);
+  border:1px solid transparent;white-space:nowrap;transition:.2s}
+nav.bar a:hover{color:var(--txt);background:var(--card)}
+nav.bar a.on{color:#0a0e1c;background:linear-gradient(92deg,var(--a1),var(--a2));font-weight:700;border-color:transparent}
+nav.bar a i{font-style:normal;opacity:.6;font-size:11.5px;margin-right:5px}
+
+/* ---------- SECTION ---------- */
+section{padding:56px 0 24px;scroll-margin-top:80px}
+.sec-head{display:flex;align-items:flex-start;gap:16px;margin-bottom:26px}
+.sec-no{flex:0 0 auto;width:52px;height:52px;border-radius:14px;display:grid;place-items:center;font-weight:800;
+  font-size:19px;color:#0a0e1c}
+.sec-head h2{margin:0;font-size:clamp(21px,2.6vw,29px);font-weight:800;letter-spacing:-.3px}
+.sec-head p{margin:4px 0 0;color:var(--dim);font-size:13.5px;max-width:820px}
+
+.grid{display:grid;gap:18px}
+.g2{grid-template-columns:repeat(2,1fr)}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:980px){.g3,.g4{grid-template-columns:repeat(2,1fr)}.g2{grid-template-columns:1fr}}
+@media(max-width:620px){.g3,.g4{grid-template-columns:1fr}}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:20px;box-shadow:var(--shadow)}
+.card h3{margin:0 0 6px;font-size:16.5px;font-weight:700}
+.card h4{margin:0 0 8px;font-size:14px;font-weight:700;color:var(--txt)}
+.card .sub{color:var(--dim2);font-size:12.5px;margin-bottom:14px}
+.muted{color:var(--dim);font-size:13.5px}
+
+/* KPI */
+.kpi{position:relative;overflow:hidden}
+.kpi .v{font-size:34px;font-weight:800;letter-spacing:-1px;line-height:1.1}
+.kpi .k{color:var(--dim);font-size:12.5px;margin-top:4px}
+.kpi .d{color:var(--dim2);font-size:11.5px;margin-top:8px}
+.kpi:after{content:'';position:absolute;right:-40px;top:-40px;width:110px;height:110px;border-radius:50%;
+  background:radial-gradient(circle,rgba(124,140,255,.35),transparent 70%)}
+
+/* bars */
+.bars{display:flex;flex-direction:column;gap:13px}
+.bar-row{display:grid;grid-template-columns:96px 1fr 74px;gap:12px;align-items:center;font-size:13px}
+.bar-bg{height:11px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden}
+.bar-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--a1),var(--a2));width:0;transition:width 1.1s cubic-bezier(.2,.8,.2,1)}
+.bar-row em{font-style:normal;color:var(--dim);text-align:right;font-size:12.5px}
+
+/* column chart */
+.chart{display:flex;align-items:flex-end;gap:8px;height:210px;padding:12px 4px 0;border-bottom:1px solid var(--line)}
+.col{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:7px;cursor:default}
+.col .v{font-size:11px;color:var(--dim);opacity:0;transition:.2s}
+.col:hover .v{opacity:1;color:var(--a2);font-weight:700}
+.col .b{width:100%;border-radius:7px 7px 3px 3px;background:linear-gradient(180deg,var(--a1),rgba(124,140,255,.35));height:0;
+  transition:height 1s cubic-bezier(.2,.8,.2,1),filter .2s}
+.col:hover .b{filter:brightness(1.35)}
+.col.peak .b{background:linear-gradient(180deg,#fbbf24,rgba(251,191,36,.35))}
+.col.arch .b{background:linear-gradient(180deg,#64748b,rgba(100,116,139,.3))}
+.col .x{font-size:10px;color:var(--dim2);white-space:nowrap;writing-mode:vertical-rl;letter-spacing:1px}
+@media(max-width:760px){.col .x{font-size:9px}}
+
+/* timeline */
+.tl{position:relative;padding-left:30px}
+.tl:before{content:'';position:absolute;left:9px;top:6px;bottom:6px;width:2px;background:linear-gradient(180deg,var(--a1),var(--a2),transparent)}
+.tl-item{position:relative;padding:0 0 26px}
+.tl-item:before{content:'';position:absolute;left:-26px;top:7px;width:12px;height:12px;border-radius:50%;
+  background:var(--bg2);border:2.5px solid var(--a2);box-shadow:0 0 0 4px rgba(34,211,238,.12)}
+.tl-item .tag{display:inline-block;font-size:11.5px;color:var(--a2);border:1px solid rgba(34,211,238,.35);
+  background:rgba(34,211,238,.08);padding:2px 9px;border-radius:99px;margin-bottom:6px}
+.tl-item h4{font-size:15.5px;margin:0 0 6px}
+.tl-item ul{margin:0;padding-left:18px;color:var(--dim);font-size:13.5px}
+.tl-item li{margin-bottom:4px}
+.tl-item li b{color:var(--txt);font-weight:600}
+.quote{margin-top:10px;padding:10px 14px;border-left:3px solid var(--a1);border-radius:0 10px 10px 0;
+  background:rgba(124,140,255,.09);font-size:13px;color:var(--dim)}
+.quote b{color:var(--txt);font-weight:600}
+
+/* person */
+.person{display:flex;gap:14px}
+.avatar{flex:0 0 auto;width:46px;height:46px;border-radius:13px;display:grid;place-items:center;font-weight:800;color:#0a0e1c;font-size:17px}
+.tags{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.tag2{font-size:11.5px;padding:3px 9px;border-radius:7px;background:var(--card2);border:1px solid var(--line);color:var(--dim)}
+
+/* chain */
+.chain{display:flex;align-items:stretch;gap:10px;flex-wrap:wrap}
+.node{flex:1 1 190px;border:1px dashed var(--line);border-radius:14px;padding:14px;background:var(--card2);position:relative}
+.node .role{font-size:11.5px;color:var(--a2);letter-spacing:.5px}
+.node .name{font-weight:700;margin:3px 0 6px;font-size:15px}
+.node p{margin:0;font-size:12.5px;color:var(--dim)}
+.node.k{background:linear-gradient(160deg,rgba(124,140,255,.20),transparent);border-color:rgba(124,140,255,.45)}
+.arrow{align-self:center;color:var(--dim2);font-size:20px}
+
+/* table */
+.tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.btn{padding:7px 14px;border-radius:9px;border:1px solid var(--line);background:var(--card);color:var(--dim);
+  font-size:12.5px;cursor:pointer;transition:.2s;font-family:inherit}
+.btn:hover{color:var(--txt);border-color:rgba(124,140,255,.5)}
+.btn.on{color:#0a0e1c;background:linear-gradient(92deg,var(--a1),var(--a2));font-weight:700;border-color:transparent}
+input.search{flex:1 1 190px;padding:7px 13px;border-radius:9px;border:1px solid var(--line);background:var(--card);
+  color:var(--txt);font-size:12.5px;font-family:inherit;outline:none}
+input.search:focus{border-color:var(--a1)}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--card)}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:860px}
+th{text-align:left;padding:12px 14px;color:var(--dim2);font-weight:600;font-size:11.5px;letter-spacing:.6px;
+  border-bottom:1px solid var(--line);white-space:nowrap;background:rgba(255,255,255,.02)}
+td{padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.05);vertical-align:top}
+tbody tr{transition:.15s}
+tbody tr:hover{background:rgba(124,140,255,.07)}
+td.name{font-weight:700;white-space:nowrap}
+.st{font-size:11px;padding:2px 8px;border-radius:6px;white-space:nowrap;font-weight:600}
+.st.in{background:rgba(52,211,153,.14);color:var(--ok)}
+.st.wait{background:rgba(251,191,36,.14);color:var(--warn)}
+.st.no{background:rgba(248,113,113,.13);color:var(--bad)}
+.st.over{background:rgba(148,163,184,.14);color:#a3b0c9}
+.star{color:var(--a3);letter-spacing:1px;font-size:12px}
+.dim-star{color:rgba(255,255,255,.16)}
+
+/* funnel */
+.funnel{display:flex;flex-direction:column;gap:9px}
+.fn{display:flex;align-items:center;justify-content:center;height:46px;border-radius:10px;font-weight:700;font-size:13.5px;color:#0a0e1c}
+.fn small{font-weight:500;opacity:.7;margin-left:8px}
+
+/* risk matrix */
+.matrix{position:relative;height:330px;border:1px solid var(--line);border-radius:14px;
+  background:
+    linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px) 0 0/50% 100%,
+    linear-gradient(180deg,rgba(255,255,255,.045) 1px,transparent 1px) 0 0/100% 50%,
+    linear-gradient(135deg,rgba(248,113,113,.10),rgba(251,191,36,.06) 45%,rgba(52,211,153,.08));
+  overflow:hidden}
+.matrix .axis{position:absolute;color:var(--dim2);font-size:11.5px}
+.matrix .ax-x{bottom:8px;left:50%;transform:translateX(-50%)}
+.matrix .ax-y{left:8px;top:50%;transform:rotate(-90deg) translateX(-50%);transform-origin:left center}
+.matrix .q{position:absolute;font-size:11px;color:var(--dim2);letter-spacing:.5px}
+.dot{position:absolute;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:12px;
+  font-weight:800;color:#0a0e1c;cursor:pointer;transition:.25s;box-shadow:0 6px 18px rgba(0,0,0,.4)}
+.dot:hover{transform:scale(1.18);z-index:5}
+.dot span{position:absolute;bottom:-19px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--dim);
+  white-space:nowrap;font-weight:500}
+
+/* gap bar */
+.gap{position:relative;height:46px;border-radius:12px;background:rgba(255,255,255,.05);overflow:hidden;margin:16px 0 6px}
+.gap i{position:absolute;top:0;bottom:0;display:grid;place-items:center;font-style:normal;font-size:12px;font-weight:700;color:#0a0e1c}
+.scale{display:flex;justify-content:space-between;color:var(--dim2);font-size:11.5px}
+
+/* insight */
+.ins{border-left:3px solid var(--a1);padding:2px 0 2px 16px}
+.ins h4{font-size:15px;margin:0 0 6px}
+.ins p{margin:0;color:var(--dim);font-size:13.5px}
+.ins.p2{border-color:var(--a2)} .ins.p3{border-color:var(--a3)} .ins.p4{border-color:var(--a4)}
+.ins.p5{border-color:var(--ok)} .ins.p6{border-color:var(--warn)}
+
+/* checklist */
+.chk{display:flex;gap:12px;align-items:flex-start;padding:13px 15px;border:1px solid var(--line);border-radius:12px;
+  background:var(--card);margin-bottom:10px;cursor:pointer;transition:.2s}
+.chk:hover{border-color:rgba(124,140,255,.45);background:var(--card2)}
+.chk input{margin-top:3px;width:17px;height:17px;accent-color:var(--a1);cursor:pointer;flex:0 0 auto}
+.chk .t{font-weight:600;font-size:14px}
+.chk .d{color:var(--dim);font-size:12.5px;margin-top:3px}
+.chk input:checked ~ div .t{text-decoration:line-through;color:var(--dim2)}
+.pri{font-size:10.5px;padding:2px 8px;border-radius:6px;margin-left:8px;font-weight:700;vertical-align:middle}
+.pri.p1{background:rgba(248,113,113,.16);color:var(--bad)}
+.pri.p2{background:rgba(251,191,36,.16);color:var(--warn)}
+.pri.p3{background:rgba(52,211,153,.14);color:var(--ok)}
+
+/* misc */
+.policy{display:flex;gap:10px;margin-bottom:11px;font-size:13px}
+.policy .d{flex:0 0 auto;width:74px;color:var(--a2);font-weight:600;font-size:12.5px}
+.note{font-size:12.5px;color:var(--dim2);border:1px dashed var(--line);border-radius:12px;padding:14px;background:rgba(255,255,255,.02)}
+.totop{position:fixed;right:22px;bottom:22px;width:44px;height:44px;border-radius:50%;border:1px solid var(--line);
+  background:rgba(13,18,36,.9);color:var(--txt);cursor:pointer;display:grid;place-items:center;font-size:17px;
+  opacity:0;pointer-events:none;transition:.3s;z-index:60}
+.totop.show{opacity:1;pointer-events:auto}
+footer{padding:44px 0 60px;color:var(--dim2);font-size:12.5px;border-top:1px solid var(--line);margin-top:40px}
+hr.sep{border:0;border-top:1px solid var(--line);margin:26px 0}
+@media print{
+  body{background:#fff;color:#111} nav.bar,.totop{display:none}
+  .card{border-color:#ccc;box-shadow:none;background:#fff} .muted,.card .sub{color:#555}
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<header class="hero">
+  <span class="eyebrow">数据来源 · <b>聊天记录_20261023_160958.zip</b> → 聊天记录.txt（48,863 B）</span>
+  <h1>聊天记录<em>分层分析</em>报告</h1>
+  <p class="lede">以 <b>成都改善置换客户（刘女士 /「颖」）</b>的购房服务全过程为样本，按「数据 → 事件 → 主体 → 标的 → 约束 → 决策」六层逐层抽象，把 421 条对话还原为可复盘、可决策的结构化结论。</p>
+  <div class="chips">
+    <span class="chip">业务周期 <b>2026-08-04 → 09-19</b></span>
+    <span class="chip">归档时间 <b>2026-10-11</b></span>
+    <span class="chip">参与人 <b>4 人</b></span>
+    <span class="chip">消息 <b>421 条</b></span>
+    <span class="chip">活跃日 <b>15 天</b></span>
+    <span class="chip">涉及楼盘 <b>12 个</b></span>
+  </div>
+
+  <div class="hero-grid">
+    <div>
+      <div class="card">
+        <h3>为什么要分层？</h3>
+        <p class="sub">对话本身是流式的、情绪化的、重复的；决策需要的是结构化的、可比较的、可追溯的。</p>
+        <p class="muted">本报告把同一批聊天记录做六次不同程度的抽象：<b style="color:var(--txt)">L1 量化事实</b>（谁在什么时候说了多少）→ <b style="color:var(--txt)">L2 还原事件</b>（发生了什么）→ <b style="color:var(--txt)">L3 识别主体</b>（谁在决策、受谁影响）→ <b style="color:var(--txt)">L4 盘点标的</b>（可选什么、各自取舍）→ <b style="color:var(--txt)">L5 定位约束</b>（什么在阻碍成交）→ <b style="color:var(--txt)">L6 形成决策</b>（洞察与行动）。每一层的结论都可以回溯到下一层的原始证据。</p>
+        <hr class="sep">
+        <p class="muted" style="margin:0"><b style="color:var(--warn)">记录性质提示：</b>本文件并非原始连续群聊，而是「万事可爱」于 2026-10-11 19:50–20:23 集中转发的 12 段嵌套 <span class="mono">[聊天记录]</span>，并附时间注解，具备<b style="color:var(--txt)">服务过程留痕 / 举证</b>属性。</p>
+      </div>
+    </div>
+    <div>
+      <div class="pyr" id="pyr">
+        <div class="pyr-row l6" data-go="l6" style="width:52%;margin:0 auto"><span class="n">L6</span>决策层<small>洞察 · 行动</small></div>
+        <div class="pyr-row l5" data-go="l5" style="width:62%;margin:0 auto"><span class="n">L5</span>约束层<small>资金 · 政策 · 渠道</small></div>
+        <div class="pyr-row l4" data-go="l4" style="width:72%;margin:0 auto"><span class="n">L4</span>标的层<small>12 个楼盘取舍</small></div>
+        <div class="pyr-row l3" data-go="l3" style="width:82%;margin:0 auto"><span class="n">L3</span>主体层<small>人 · 决策链</small></div>
+        <div class="pyr-row l2" data-go="l2" style="width:91%;margin:0 auto"><span class="n">L2</span>事件层<small>5 阶段 · 15 个节点</small></div>
+        <div class="pyr-row l1" data-go="l1" style="width:100%"><span class="n">L1</span>数据层<small>421 条原始对话</small></div>
+      </div>
+      <p class="pyr-cap">↑ 点击任意层级跳转 · 抽象程度自下而上递增</p>
+    </div>
+  </div>
+</header>
+</div>
+
+<nav class="bar" id="nav">
+  <div class="inner">
+    <a href="#l1" class="on"><i>L1</i>数据层</a>
+    <a href="#l2"><i>L2</i>事件层</a>
+    <a href="#l3"><i>L3</i>主体层</a>
+    <a href="#l4"><i>L4</i>标的层</a>
+    <a href="#l5"><i>L5</i>约束层</a>
+    <a href="#l6"><i>L6</i>决策层</a>
+  </div>
+</nav>
+
+<div class="wrap">
+
+<!-- ============ L1 ============ -->
+<section id="l1">
+  <div class="sec-head">
+    <div class="sec-no" style="background:linear-gradient(140deg,#dbe3ff,#7c8cff)">L1</div>
+    <div>
+      <h2>数据层 · 对话本体的量化画像</h2>
+      <p>不解读语义，只回答问题：谁在说、说了多少、什么时候最密集、用了什么载体。这是后续所有推断的证据地基。</p>
+    </div>
+  </div>
+
+  <div class="grid g4" style="margin-bottom:18px">
+    <div class="card kpi"><div class="v">421</div><div class="k">消息总条数</div><div class="d">含嵌套转发记录</div></div>
+    <div class="card kpi"><div class="v">46<span style="font-size:18px;color:var(--dim)"> 天</span></div><div class="k">业务沟通跨度</div><div class="d">08-04 → 09-19</div></div>
+    <div class="card kpi"><div class="v">15</div><div class="k">有效活跃日</div><div class="d">单日均 28 条</div></div>
+    <div class="card kpi"><div class="v">46.1<span style="font-size:18px;color:var(--dim)">%</span></div><div class="k">客户发言占比</div><div class="d">参与度极高</div></div>
+  </div>
+
+  <div class="grid g2">
+    <div class="card">
+      <h3>发言量分布</h3>
+      <p class="sub">客户发言接近一半 —— 高信任度、高情绪卷入，同时也意味着决策尚未收敛。</p>
+      <div class="bars" id="barsSpeaker"></div>
+      <hr class="sep">
+      <p class="muted" style="margin:0"><b style="color:var(--txt)">结构解读：</b>「刘老师」负责日常高密度陪跑（118 条），「东哥」提供低频高强度的板块研判与谈判（75 条），「万事可爱」承担安抚与记录（34 条），形成 <b style="color:var(--txt)">专业研判 + 日常执行 + 客情维护</b> 的三层配置。</p>
+    </div>
+
+    <div class="card">
+      <h3>沟通密度的时间分布</h3>
+      <p class="sub">悬停查看每日事件；金色为情绪/决策峰值，灰色为归档日。</p>
+      <div class="chart" id="chart"></div>
+      <div class="scale" style="margin-top:8px"><span>08-04</span><span>→ 15 个活跃日 →</span><span>10-11</span></div>
+      <hr class="sep">
+      <p class="muted" style="margin:0">三个波峰对应三个真实节点：<b style="color:var(--warn)">09-05（87 条）</b>新政焦虑 + 远达顶跃推荐；<b style="color:var(--txt)">08-19（65 条）</b>需求首次完整澄清；<b style="color:var(--txt)">09-08（51 条）</b>卖房议价拉锯。</p>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:18px">
+    <h3>沟通载体构成</h3>
+    <p class="sub">聊天不只是文字：房产交易的关键证据往往藏在非文字载体里。</p>
+    <div class="bars" id="barsMedia"></div>
+    <hr class="sep">
+    <p class="muted" style="margin:0"><b style="color:var(--txt)">12 段嵌套转发</b>是本次记录的组织骨架；<b style="color:var(--txt)">15 张图片</b>多为户型图、报价截图与学校距离截图（后者直接驱动决策）；<b style="color:var(--txt)">3 个位置 + 3 条视频号</b>分别承担「距离核验」与「理念说服」功能。</p>
+  </div>
+</section>
+
+<!-- ============ L2 ============ -->
+<section id="l2">
+  <div class="sec-head">
+    <div class="sec-no" style="background:linear-gradient(140deg,#c7d2fe,#818cf8)">L2</div>
+    <div>
+      <h2>事件层 · 五个阶段的真实推进</h2>
+      <p>把散落在 15 天的对话还原成一条因果链：从需求澄清，到产品筛选，到决策摇摆，再到被「卖房」卡住。</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="tl">
+      <div class="tl-item">
+        <span class="tag">阶段一 · 08-01 → 08-19</span>
+        <h4>需求澄清期 —「我想要什么」</h4>
+        <ul>
+          <li><b>08-01</b> 首次线下碰面，实地看 <b>人居沁川林语、中铁卓萃</b> 两个项目</li>
+          <li><b>08-04 → 08-19</b> 多次邀约复看，因先生在外地未归而搁置</li>
+          <li><b>08-19（65 条）</b>需求首次完整成型：离学校近、有阳台、500 万以内、有商业、不陪跑</li>
+          <li>顾问输出南门板块全景：<b>新川 / 大源 / 怡心湖 / 天新·万安·麓湖·天东天西</b></li>
+        </ul>
+        <div class="quote"><b>颖：</b>「我的诉求，离学校近点，有个阳台，最好 500 以内，就这些。嗷嗷，地点有些商业，不用陪跑太久。」</div>
+      </div>
+      <div class="tl-item">
+        <span class="tag">阶段二 · 08-20 → 08-30</span>
+        <h4>产品筛选期 —「能买什么」</h4>
+        <ul>
+          <li><b>08-20</b> 云锦 66 被否决（配套不如卓萃、无阳台、楼间距近）；客户自述心仪：<b>卓萃 / 西派 / 翡悦天华 / 远达</b></li>
+          <li><b>08-21</b> 客户转天府新区政策文件；东哥定调「<b>中铁卓萃是官方首个认证四代宅标杆</b>」</li>
+          <li><b>08-22</b> 团队成交回流（人居现场粉丝购入新川高投新规，300 万出头），强化信任</li>
+          <li><b>08-23 / 08-25</b> 保利系因阳台需封进客厅被否；二期降价引老业主维权；<b>客户正式委托代售大源房产</b></li>
+          <li><b>08-28 / 08-30</b> 交子缦华超预算排除；稳楼市政策解读；<b>先生定调「先卖后买、不背贷款」</b></li>
+        </ul>
+      </div>
+      <div class="tl-item">
+        <span class="tag">阶段三 · 09-03 → 09-05</span>
+        <h4>决策摇摆期 —「我被市场推着走」</h4>
+        <ul>
+          <li><b>09-03（41 条）</b>厘清翡悦天华全量价格；复盘 7 月诚意金（6 楼 530 万）退定；明确<b>中介带看保护期 3 个月</b>与返佣机制</li>
+          <li>东哥指出中海天东盘症结非配套（大悦城已很顶），而是<b>板块支撑 / 地块 / 容积率 / 楼间距</b></li>
+          <li><b>09-05（87 条 · 全周期峰值）</b>客户转发「新政后成都购房者上涨 6.8%」，情绪焦虑；首付比例 15%</li>
+          <li>刘老师推荐 <b>远达·麓湖云邸顶跃</b>（现房 · 带花园 · 特价 500 万 · 离校更近），客户反应积极</li>
+        </ul>
+        <div class="quote"><b>东哥：</b>「我有种强烈感觉，你这次感觉慌的很，容易遭起。等我一哈，我在外面签合同，等哈语音沟通一哈。」</div>
+      </div>
+      <div class="tl-item">
+        <span class="tag">阶段四 · 09-08 → 09-11</span>
+        <h4>卖房掣肘期 —「卡在钱上」</h4>
+        <ul>
+          <li><b>09-08（51 条）</b>确认先生意见为<b>先卖后买</b>（经济下行、怕还不上贷）</li>
+          <li>顾问引导对「户型 / 距离 / 交付 / 总价 / 配套」五项排序，并警示「只因交房早就选翡悦，这个买点有问题」</li>
+          <li>议价拉锯：挂牌 350 万+ → 买家 <b>300 万</b> → 客户底价 <b>335 万（含车位）</b>，价差 35 万，另付 1.75% 佣金</li>
+          <li><b>09-11</b> 客户转天东中海 489 超高层限高停工传闻，<b>公开质疑天府新区价值</b>；自评「麓湖最值得」但 C23 需 700 万</li>
+        </ul>
+        <div class="quote"><b>颖：</b>「既要又要还要 —— 离学校近，有价值，二手好流通，没有多余资金去加杠杆。」</div>
+      </div>
+      <div class="tl-item">
+        <span class="tag">阶段五 · 09-19 → 10-11</span>
+        <h4>资产处置与留痕期 —「回到起点」</h4>
+        <ul>
+          <li><b>09-19</b> 东哥推客源（建发中央鹭洲 4 室 2 厅 西北）给粉丝询价；东哥自曝有自购意愿但超预算</li>
+          <li>客户报价 <b>335 万含车位</b>，另付贝壳 1.75%；坦言「去年 460 万，现在真卖不上价」</li>
+          <li><b>10-11 19:50–20:23</b> 万事可爱分 12 段集中转发全部历史记录并加时间注解：「基本就这些」</li>
+        </ul>
+        <div class="quote"><b>东哥：</b>「大源的东西需要看得懂的人才值钱。」</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ L3 ============ -->
+<section id="l3">
+  <div class="sec-head">
+    <div class="sec-no" style="background:linear-gradient(140deg,#a5f3fc,#22d3ee)">L3</div>
+    <div>
+      <h2>主体层 · 谁在决策，谁在影响</h2>
+      <p>本单的关键结构：<b>看房的人不做决定，做决定的人没看过房</b>。识别这条决策链，比多推一个楼盘重要得多。</p>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:18px">
+    <h3>客户侧决策链</h3>
+    <p class="sub">信息流与资金流分离，是全流程最大的结构性摩擦。</p>
+    <div class="chain">
+      <div class="node k">
+        <div class="role">信息收集 · 偏好表达</div>
+        <div class="name">颖（刘女士）</div>
+        <p>194 条发言。看房、提问、比价、情绪外露；对「阳台 / 花园」有强执念，对按揭有恐惧。</p>
+      </div>
+      <div class="arrow">→</div>
+      <div class="node">
+        <div class="role">偏好输入 · 次要影响</div>
+        <div class="name">母亲 / 孩子</div>
+        <p>母亲明确偏好西派；孩子的接送距离是全单<b>唯一的硬约束</b>。</p>
+      </div>
+      <div class="arrow">→</div>
+      <div class="node k">
+        <div class="role">资金闸门 · 终审</div>
+        <div class="name">先生（东哥）</div>
+        <p>常年在外，<b>从未实地看过任何四代宅</b>。定调「先卖后买、不想有压力」，直接决定交易能否启动。</p>
+      </div>
+    </div>
+    <hr class="sep">
+    <p class="muted" style="margin:0"><b style="color:var(--warn)">结构性结论：</b>所有带看、谈判、情绪铺垫都作用在「信息节点」上，而真正的<b style="color:var(--txt)">决策节点缺席现场</b>。在先生回成都之前，任何成交动作的成功率都会被系统性打折 —— 这是「两次邀约看房被婉拒（08-21）」「诚意金退定（7 月）」的共同根因。</p>
+  </div>
+
+  <div class="grid g2">
+    <div class="card">
+      <h3>客户画像</h3>
+      <p class="sub">86 年生 · 金牛座 · 自述「旺别人」</p>
+      <div class="person">
+        <div class="avatar" style="background:linear-gradient(140deg,#ffd9ec,#f472b6)">颖</div>
+        <div>
+          <p class="muted" style="margin:0">现居大源 <b style="color:var(--txt)">建发中央鹭洲</b>（4 室 2 厅 西北），金牛区上班 —— 通勤差异对她不敏感，<b style="color:var(--txt)">学区通勤才是唯一痛点</b>（高峰送学 45 分钟，迟到已影响上课）。</p>
+          <div class="tags">
+            <span class="tag2">改善 · 非投资</span><span class="tag2">只要新房</span><span class="tag2">预算 500 万</span>
+            <span class="tag2">花园梦想</span><span class="tag2">抗拒杠杆</span><span class="tag2">决策随情绪波动</span>
+            <span class="tag2">社交型客户</span><span class="tag2">顾问关系黏性强</span>
+          </div>
+        </div>
+      </div>
+      <hr class="sep">
+      <h4>需求五维权重（推断）</h4>
+      <div class="bars" id="barsNeed"></div>
+    </div>
+
+    <div class="card">
+      <h3>服务侧角色分工</h3>
+      <p class="sub">一个客户，三个人三种职能。</p>
+      <div class="grid" style="gap:12px">
+        <div class="person">
+          <div class="avatar" style="background:linear-gradient(140deg,#c7d2fe,#818cf8)">东</div>
+          <div><h4 style="margin:0 0 3px">东哥焦点房谈 <span class="pri p2">主顾问</span></h4>
+          <p class="muted" style="margin:0">75 条。板块价值研判、市场风向、谈判节奏、内容 IP（视频号 / 公众号）反哺获客。关键时刻敢于叫停：「你慌得很，容易遭起」。</p></div>
+        </div>
+        <div class="person">
+          <div class="avatar" style="background:linear-gradient(140deg,#a5f3fc,#22d3ee)">刘</div>
+          <div><h4 style="margin:0 0 3px">刘老师 <span class="pri p3">执行顾问</span></h4>
+          <p class="muted" style="margin:0">118 条。房源落实、价格测算、日常陪看、需求梳理。全程最稳定的信息供给方，也是最主动向客户「泼冷水」的人。</p></div>
+        </div>
+        <div class="person">
+          <div class="avatar" style="background:linear-gradient(140deg,#fff3c4,#fbbf24)">万</div>
+          <div><h4 style="margin:0 0 3px">万事可爱 <span class="pri p3">客情 / 记录</span></h4>
+          <p class="muted" style="margin:0">34 条。议价安抚、卖房策略、并最终完成 12 段记录归档 —— 本文件即出自其手。</p></div>
+        </div>
+      </div>
+      <hr class="sep">
+      <p class="muted" style="margin:0"><b style="color:var(--txt)">关系资产：</b>大量非业务互动（星座、玩笑、「旺财」梗、夸赞）。团队甚至把客户故事写成文案做内容转化，形成 <b style="color:var(--txt)">服务 → 内容 → 新客</b> 闭环 —— 本单的社会价值已超出单笔佣金。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ L4 ============ -->
+<section id="l4">
+  <div class="sec-head">
+    <div class="sec-no" style="background:linear-gradient(140deg,#bbf7e0,#34d399)">L4</div>
+    <div>
+      <h2>标的层 · 12 个楼盘的取舍逻辑</h2>
+      <p>把「看了什么」变成「为什么留下 / 为什么淘汰」。漏斗从上到下每一层都对应客户的一条硬约束。</p>
+    </div>
+  </div>
+
+  <div class="grid g2" style="margin-bottom:18px">
+    <div class="card">
+      <h3>筛选漏斗</h3>
+      <p class="sub">淘汰原因比留下原因更能说明客户的真实偏好。</p>
+      <div class="funnel">
+        <div class="fn" style="width:100%;background:linear-gradient(90deg,#dbe3ff,#7c8cff)">接触 / 研判 12 个<small>含新盘预告</small></div>
+        <div class="fn" style="width:78%;background:linear-gradient(90deg,#c7d2fe,#818cf8)">进入对比 6 个<small>通过板块初筛</small></div>
+        <div class="fn" style="width:56%;background:linear-gradient(90deg,#a5f3fc,#22d3ee)">实地深看 4 个<small>沁川林语 · 卓萃 · 西派 · 翡悦</small></div>
+        <div class="fn" style="width:38%;background:linear-gradient(90deg,#bbf7e0,#34d399)">当前在选 3 个<small>西派 · 翡悦 · 远达</small></div>
+        <div class="fn" style="width:22%;background:linear-gradient(90deg,#fff3c4,#fbbf24)">待定 1 个<small>资金闭环后</small></div>
+      </div>
+      <p class="muted" style="margin:14px 0 0"><b style="color:var(--txt)">淘汰归因：</b>无阳台 / 阳台要封（云锦66、保利和颂系）· 太偏配套差（卓萃）· 交付太晚（西派 2028 年底）· 超预算（交子缦华、麓湖 C23）· 产品观感差（天珺）。<b style="color:var(--warn)">没有一个项目因为「不好」被淘汰，全部因为「不匹配某条硬约束」。</b></p>
+    </div>
+
+    <div class="card">
+      <h3>三项最优候选的正面对比</h3>
+      <p class="sub">同一预算下，三者解决的是完全不同的人生问题。</p>
+      <div class="grid" style="gap:12px">
+        <div class="card" style="background:var(--card2)">
+          <h4>翡悦天华（中海）· 天东 <span class="st wait">当前倾向</span></h4>
+          <p class="muted" style="margin:0">208㎡ 570–650 万（剩 10 套+）· 交付较早 · 7 月曾谈 6 楼 530 万。<br><b style="color:var(--bad)">硬伤：</b>比现住址仅近 5 分钟、无花园、总价上探；板块「孤军奋战」。</p>
+        </div>
+        <div class="card" style="background:var(--card2)">
+          <h4>远达·麓湖云邸顶跃 · 麓湖泛湖区 <span class="st in">匹配度最高</span></h4>
+          <p class="muted" style="margin:0">顶跃带大花园 · <b style="color:var(--ok)">现房</b> · 特价 500 万 · 离学校近很多。<br><b style="color:var(--warn)">待验：</b>样板间未实地看、二手流通性未知。</p>
+        </div>
+        <div class="card" style="background:var(--card2)">
+          <h4>西派天麓 · 天府新区 <span class="st wait">情绪首选</span></h4>
+          <p class="muted" style="margin:0">145㎡ 三户型 / 183㎡ 二户型 · 一眼心动、母亲喜欢。<br><b style="color:var(--bad)">硬伤：</b>2028 年底交付，与「不陪跑」诉求直接冲突。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>全量楼盘明细</h3>
+    <p class="sub">支持按状态筛选与关键词搜索（项目名 / 板块 / 备注）。</p>
+    <div class="tools">
+      <button class="btn on" data-f="all">全部 12</button>
+      <button class="btn" data-f="in">在选 3</button>
+      <button class="btn" data-f="wait">观望 2</button>
+      <button class="btn" data-f="no">已否决 5</button>
+      <button class="btn" data-f="over">超预算 2</button>
+      <input class="search" id="q" placeholder="搜索：麓湖 / 阳台 / 2028 / 500万 …" />
+    </div>
+    <div class="tbl-wrap">
+      <table id="tbl">
+        <thead><tr>
+          <th>项目</th><th>板块</th><th>产品 / 面积</th><th>价格（记录原文）</th><th>交付</th><th>状态</th><th>匹配度</th><th>判定依据</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="muted" style="margin:14px 0 0">※ 价格、交付时间均为聊天记录中的原话摘录，未经三方核实。</p>
+  </div>
+</section>
+
+<!-- ============ L5 ============ -->
+<section id="l5">
+  <div class="sec-head">
+    <div class="sec-no" style="background:linear-gradient(140deg,#ffd9ec,#f472b6)">L5</div>
+    <div>
+      <h2>约束层 · 是什么让这笔成交停在原地</h2>
+      <p>四类约束：资金闭环（决定能否买）、政策情绪（决定何时买）、渠道规则（决定跟谁买）、产品妥协（决定买什么）。</p>
+    </div>
+  </div>
+
+  <div class="grid g2" style="margin-bottom:18px">
+    <div class="card">
+      <h3>约束一 · 资金闭环未打通（决定性约束）</h3>
+      <p class="sub">新房预算上限 = 大源房产实际到手价 + 可接受负债。</p>
+      <div class="gap">
+        <i style="left:0;width:60%;background:linear-gradient(90deg,#f87171,#fbbf24)">买家出价 300 万</i>
+        <i style="left:60%;width:40%;background:linear-gradient(90deg,#fbbf24,#34d399)">客户底价 335 万</i>
+      </div>
+      <div class="scale"><span>300 万</span><span>价差 35 万 + 1.75% 佣金</span><span>335 万（含车位）</span></div>
+      <hr class="sep">
+      <div class="bars">
+        <div class="bar-row"><span>历史市值 2025</span><span class="bar-bg"><span class="bar-fill" data-w="100" style="background:linear-gradient(90deg,#7c8cff,#22d3ee)"></span></span><em>460 万</em></div>
+        <div class="bar-row"><span>挂牌价</span><span class="bar-bg"><span class="bar-fill" data-w="76" style="background:linear-gradient(90deg,#7c8cff,#22d3ee)"></span></span><em>350 万+</em></div>
+        <div class="bar-row"><span>心理底价</span><span class="bar-bg"><span class="bar-fill" data-w="73" style="background:linear-gradient(90deg,#fbbf24,#34d399)"></span></span><em>335 万</em></div>
+        <div class="bar-row"><span>买家出价</span><span class="bar-bg"><span class="bar-fill" data-w="65" style="background:linear-gradient(90deg,#f87171,#fbbf24)"></span></span><em>300 万</em></div>
+      </div>
+      <p class="muted" style="margin:14px 0 0">先生要求「先卖后买」→ 卖房进度直接决定买方的启动时间；而客户为求快一降再降，团队内部已形成相反共识（东哥「不要毛起降价」、万事可爱「政策底部已经来了」）。<b style="color:var(--warn)">策略与执行在此出现内耗。</b></p>
+    </div>
+
+    <div class="card">
+      <h3>约束二 · 政策与市场情绪</h3>
+      <p class="sub">同一批信息，在两个方向上拉扯客户。</p>
+      <div class="policy"><span class="d">08-21</span><span class="muted">客户转《进一步支持四川天府新区高质量发展的若干政策措施》→ <b style="color:var(--ok)">看多</b></span></div>
+      <div class="policy"><span class="d">08-30</span><span class="muted">顾问解读密集新政：稳楼市为主，「难推动上涨，不大幅降就算有成效」，但购房成本将增加 → <b style="color:var(--warn)">中性偏多</b></span></div>
+      <div class="policy"><span class="d">09-05</span><span class="muted">客户转「新政后成都购房者上涨 6.8%」→ 焦虑峰值 87 条；首付比例参考 15% → <b style="color:var(--bad)">追涨情绪</b></span></div>
+      <div class="policy"><span class="d">09-11</span><span class="muted">客户转天东中海 489 超高层限高停工传闻 → 质疑天府新区价值 → <b style="color:var(--bad)">看空转向</b></span></div>
+      <hr class="sep">
+      <p class="muted" style="margin:0"><b style="color:var(--txt)">结论：</b>客户的信息源正在从「顾问主导」转向「自媒体主导」，且两端信息互相矛盾。若顾问不主动提供可验证的判断框架（而非单向利好解读），客户会在焦虑中做出「最容易后悔的决策」。</p>
+    </div>
+  </div>
+
+  <div class="grid g2">
+    <div class="card">
+      <h3>约束三 · 渠道规则与过程合规</h3>
+      <p class="sub">这也是本份聊天记录被归档的现实动因。</p>
+      <ul class="muted" style="margin:0;padding-left:18px">
+        <li><b style="color:var(--txt)">保护期：</b>7 月经<b>外部中介</b>看过翡悦天华与西派天麓，保护期 3 个月（约至 10 月）</li>
+        <li><b style="color:var(--txt)">诚意金：</b>7 月交诚意金申请 6 楼 530 万，因先生未回退定，未获集团批复结果</li>
+        <li><b style="color:var(--txt)">返佣：</b>刘老师明确「我们会返佣」，客户回应「这是应该的」</li>
+        <li><b style="color:var(--txt)">报价口径：</b>335 万含车位，另需支付贝壳 1.75% 佣金 —— 多渠道报价须统一</li>
+      </ul>
+      <hr class="sep">
+      <p class="muted" style="margin:0">10-11 的集中转发带有明确时间注解（「这是最开始刘女士跟东哥的聊天截图」「8.1 第一次见到刘女士」），具备<b style="color:var(--txt)">服务归属举证</b>属性。建议补齐两项缺失留痕：① 09-03、09-05 两次提议的<b style="color:var(--txt)">群语音结论纪要</b>；② 08-01 首看的<b style="color:var(--txt)">带看确认</b>。</p>
+    </div>
+
+    <div class="card">
+      <h3>约束四 · 风险矩阵</h3>
+      <p class="sub">横轴＝发生确定性，纵轴＝对成交的影响。悬停查看。</p>
+      <div class="matrix" id="mx">
+        <span class="axis ax-x">确定性 →</span>
+        <span class="axis ax-y">影响 →</span>
+        <span class="q" style="left:12px;bottom:14px">观察区</span>
+        <span class="q" style="right:12px;bottom:14px">次要干扰</span>
+        <span class="q" style="left:12px;top:10px">需预案</span>
+        <span class="q" style="right:12px;top:10px">核心攻坚</span>
+      </div>
+      <div class="muted" style="margin-top:14px;font-size:12.5px">
+        <b style="color:var(--bad)">R1</b> 资金闭环 · <b style="color:var(--bad)">R2</b> 大源折价 · <b style="color:var(--warn)">R3</b> 渠道归属 · <b style="color:var(--warn)">R4</b> 诚意金退定 ·
+        <b style="color:var(--warn)">R5</b> 翡悦合理性 · <b style="color:var(--a2)">R6</b> 板块预期 · <b style="color:var(--dim)">R7</b> 卓萃周期 · <b style="color:var(--dim)">R8</b> 情绪决策
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ L6 ============ -->
+<section id="l6">
+  <div class="sec-head">
+    <div class="sec-no" style="background:linear-gradient(140deg,#fff3c4,#fbbf24)">L6</div>
+    <div>
+      <h2>决策层 · 洞察与行动</h2>
+      <p>前五层收敛出的六条判断，以及对应到人和时间的可执行清单。</p>
+    </div>
+  </div>
+
+  <div class="grid g2" style="margin-bottom:18px">
+    <div class="card ins"><h4>01 · 瓶颈不在房源，在资金与决策链</h4><p>客户已充分看盘（「认识你们以前，我把能看的都看完了」），信任充分。真正卡死的是：先生未归 + 坚持先卖后买。继续推新盘只会增加噪音。</p></div>
+    <div class="card ins p2"><h4>02 · 翡悦天华是妥协解，不是最优解</h4><p>它只在「交付早」上占优，而接送距离（仅近 5 分钟）与花园两项硬指标全部落空，总价反而上探到 570 万+。顾问本人已提示「只因交房早就买，这个买点有问题」。</p></div>
+    <div class="card ins p5"><h4>03 · 远达·麓湖云邸顶跃是全池匹配度最高的标的</h4><p>现房 + 带花园 + 500 万 + 离校显著更近，四项硬指标同时命中，且落在预算内。理应排在所有选项之前，却因推荐时间最晚（09-05）而未被充分验证。</p></div>
+    <div class="card ins p3"><h4>04 · 卖房应当稳价，而非续降</h4><p>团队判断（大源稀缺、政策见底）与客户行为（急于成交而持续让价）背离。挂牌价一旦失守，新房预算同步塌陷，最终两头受损。</p></div>
+    <div class="card ins p4"><h4>05 · 决策权与信息权分离，须用工具而非情绪弥合</h4><p>太太在现场、先生在远端。应输出一页式量化对比表（价格 / 交付 / 通勤 / 花园 / 流通性），让缺席决策者也能独立判断，替代反复口头沟通。</p></div>
+    <div class="card ins p6"><h4>06 · 这是一份被「归档」的记录，意味着已进入举证语境</h4><p>关键节点（08-01 首看、7 月诚意金、保护期、底气报价）必须有据可查；目前仍缺两次群语音的结论留痕。</p></div>
+  </div>
+
+  <div class="grid g2">
+    <div class="card">
+      <h3>客户侧行动清单</h3>
+      <p class="sub">点击勾选，状态自动保存在本地浏览器。</p>
+      <div id="listA"></div>
+    </div>
+    <div class="card">
+      <h3>服务团队行动清单</h3>
+      <p class="sub">按优先级排序：先清障碍，再推房源。</p>
+      <div id="listB"></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p><b>聊天记录分层分析报告</b> · 源文件：聊天记录_20261023_160958.zip / 聊天记录.txt（48,863 字节，UTF-8）· 生成于 2026-10-30</p>
+  <p>本报告由对话文本自动梳理生成，所有价格、面积、交付时间均以记录原文为准，未经第三方核实；涉及市场判断的内容仅为记录中各方观点转述，不构成投资或交易建议。</p>
+</footer>
+</div>
+
+<button class="totop" id="top">↑</button>
+
+<script>
+/* ---------- data ---------- */
+const speakers=[["颖","客户 · 决策人之一",194,"46.1%","linear-gradient(90deg,#ffd9ec,#f472b6)"],
+["刘老师。","执行顾问",118,"28.0%","linear-gradient(90deg,#a5f3fc,#22d3ee)"],
+["东哥焦点房谈","主顾问",75,"17.8%","linear-gradient(90deg,#c7d2fe,#818cf8)"],
+["万事可爱","客情 / 记录",34,"8.1%","linear-gradient(90deg,#fff3c4,#fbbf24)"]];
+const media=[["图片",15],["嵌套聊天记录",12],["视频号",3],["位置",3],["视频",2],["链接",2],["笔记",1],["小程序",1],["动画表情",1]];
+const days=[["08-04",1,"邀约复看 · 先生未归"],["08-19",65,"需求澄清 + 南门板块全景"],["08-20",30,"新川研判 · 云锦66 被否"],
+["08-21",15,"天府新区政策 · 卓萃标杆定性"],["08-22",13,"团队成交案例回流"],["08-23",5,"保利和颂阳台问题"],
+["08-25",32,"二期降价维权 · 委托卖房"],["08-28",14,"交子缦华超预算"],["08-30",8,"稳楼市解读 · 先卖后买"],
+["09-03",41,"翡悦价格复盘 · 诚意金往事"],["09-05",87,"新政焦虑峰值 · 远达顶跃推荐",1],["09-08",51,"卖房议价拉锯 335 vs 300"],
+["09-11",23,"天府新区价值质疑"],["09-19",16,"东哥粉丝询价"],["10-11",20,"记录归档转发",0,1]];
+const needs=[["学区通勤",100],["阳台 / 花园",98],["总价 ≤500 万",86],["新房（非二手）",80],["交付周期",58],["商业配套",52]];
+const rows=[
+["中铁卓萃","天府新区","第四代住宅（官方首个认证标杆）","—","—","wait","★★☆☆☆","喜欢大阳台，但太偏、配套拉垮、陪跑周期长；09-03 起准备放弃","天府新区 阳台 2028 陪跑"],
+["西派天麓（西派融城）","天府新区","145㎡ 三户型 / 183㎡ 二户型","—","2028 年底","in","★★★☆☆","一眼心动、母亲喜欢；唯一硬伤是交付太晚","金融城 2028 交付 母亲"],
+["翡悦天华（中海）","天东","208 / 249 / 318 / 636㎡","208㎡ 570–650 万（剩 10 套+）；249㎡ 720–780 万；318㎡ 930–1200 万","较早","in","★★★☆☆","当前第一倾向；但仅比现址近 5 分钟、无花园、总价上探；板块「孤军奋战」","570 500万 学校 交付"],
+["远达·麓湖云邸","麓湖泛湖区","顶跃 + 大花园（现房）","特价 500 万","现房","in","★★★★★","四项硬指标同时命中；待实地看样板间与核验通勤","麓湖 500万 现房 花园 学校"],
+["明信项目（待亮相）","天府新区 · 锦江生态带","四代宅平层 + 叠拼","地价 11700；150㎡ 预估 380–400 万","预计 2028 年底","wait","★★★☆☆","价格最友好，客户明确「可以等一下」；但交付同样偏晚","500万 2028 锦江生态带"],
+["云锦 66","新川","170㎡ 洋房","—","—","no","★☆☆☆☆","配套不如卓萃、无阳台、楼间距近","新川 阳台"],
+["保利和颂","锦江生态带南区","199㎡ 楼王","—","—","no","★☆☆☆☆","阳台需封进客厅，客户「算了东哥，我要阳台」","阳台 保利"],
+["保利天府和颂二期","锦江生态带南区","最大 199㎡","二期降价，前期业主买成 2.4 万/㎡","—","no","★☆☆☆☆","降价引发维权 + 阳台需封","降价 维权 阳台"],
+["天珺","—","173㎡","560 万起","—","no","★☆☆☆☆","客户嫌「老钱风、黑嘟嘟、绿化不好」","560万"],
+["交子缦华","金融城","165/185㎡、215/255㎡、别墅 350㎡","800–1200 万 / 1000–1700 万 / 别墅 2500–6000 万","期房","over","☆☆☆☆☆","严重超预算；粉丝 3 期 215㎡ 成交 1268 万","金融城 1268万"],
+["麓湖 C23 组团","麓湖","—","约 700 万","—","over","★★☆☆☆","客户「梦中情房」，明确自认买不起","700万 麓湖"],
+["人居沁川林语","—","—","—","—","no","★☆☆☆☆","08-01 首看项目之一，此后未被提起","沁川林语"]
+];
+const stMap={in:["在选","in"],wait:["观望","wait"],no:["已否决","no"],over:["超预算","over"]};
+const risks=[[78,86,"R1","资金闭环"],[70,90,"R2","大源折价"],[62,72,"R3","渠道归属"],[55,66,"R4","诚意金"],[60,60,"R5","翡悦合理性"],[52,48,"R6","板块预期"],[45,38,"R7","卓萃周期"],[58,32,"R8","情绪决策"]];
+const actsA=[["先排序，再选房","把「距离 → 花园 → 总价 → 交付 → 配套」按权重排定，避免在焦虑中被单一卖点驱动。","p1"],
+["守住 335 万含车位的售房底价","改为多渠道广撒网 + 集中带看提升转化，而不是继续下调挂牌价。","p1"],
+["优先实地复看远达·麓湖云邸顶跃","核验样板间与到学校的真实通勤时间；同步确认明信项目亮相节点。","p1"],
+["明确「翡悦＝次选、卓萃＝退出」","减少同时持仓多个心理账户带来的决策疲劳。","p2"],
+["推动先生一次性完成复看排期","待其回成都后集中看西派 / 翡悦 / 远达 / 明信，一次性收敛。","p2"]];
+const actsB=[["核对保护期与渠道报备时间窗","锁定 7 月外部中介带看到期日，规避归属争议。","p1"],
+["补齐两次群语音的文字纪要","09-03、09-05 提议的语音沟通在记录中无结论，需补留痕。","p1"],
+["输出一页式量化对比决策表","价格 / 交付 / 通勤 / 花园 / 流通性五维打分，把感性讨论转为可比较的分值。","p1"],
+["统一对外售房报价纪律","底价与 1.75% 佣金承担口径全渠道一致，防止多渠道价差。","p2"],
+["前置过渡资金方案","针对「先卖后买」提供首付比例、过桥与提前还款测算，化解先生对负债的顾虑。","p2"],
+["保持陪跑但停止施压","维持情绪价值优势；在客户焦虑期不推成交，改推判断框架。","p3"]];
+
+/* ---------- render ---------- */
+const $=s=>document.querySelector(s), el=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!==undefined)e.innerHTML=h;return e};
+function stars(s){const n=(s.match(/★/g)||[]).length;return '<span class="star">'+'★'.repeat(n)+'</span><span class="dim-star">'+"★".repeat(5-n)+'</span>'}
+
+// speaker bars
+const bs=$("#barsSpeaker");
+speakers.forEach(([n,r,v,p,g])=>{const row=el("div","bar-row");
+ row.innerHTML='<span><b>'+n+'</b><br><em style="text-align:left">'+r+'</em></span>';
+ const bg=el("span","bar-bg"),f=el("span","bar-fill");f.style.background=g;f.dataset.w=Math.round(v/194*100);bg.appendChild(f);
+ row.appendChild(bg);row.appendChild(el("em",null,v+' 条 / '+p));bs.appendChild(row);
+ // double-line tweak
+ row.querySelector("span").style.lineHeight="1.3";
+});
+// media bars
+const bm=$("#barsMedia");
+media.forEach(([k,v])=>{const row=el("div","bar-row");row.innerHTML='<span>'+k+'</span>';
+ const bg=el("span","bar-bg"),f=el("span","bar-fill");f.dataset.w=Math.round(v/15*100);bg.appendChild(f);
+ row.appendChild(bg);row.appendChild(el("em",null,v+' 处'));bm.appendChild(row);});
+// need bars
+const bn=$("#barsNeed");
+needs.forEach(([k,v])=>{const row=el("div","bar-row");row.innerHTML='<span>'+k+'</span>';
+ const bg=el("span","bar-bg"),f=el("span","bar-fill");f.dataset.w=v;
+ f.style.background = v>=90 ? "linear-gradient(90deg,#f87171,#fbbf24)" : v>=70 ? "linear-gradient(90deg,#fbbf24,#34d399)" : "linear-gradient(90deg,#7c8cff,#22d3ee)";
+ bg.appendChild(f);row.appendChild(bg);row.appendChild(el("em",null,v>=90?"硬约束":v>=70?"强偏好":"可妥协"));bn.appendChild(row);});
+
+// chart
+const ch=$("#chart"),max=Math.max(...days.map(d=>d[1]));
+days.forEach(([d,v,,peak,arch])=>{const c=el("div","col"+(peak?" peak":"")+(arch?" arch":""));
+ c.innerHTML='<span class="v">'+v+' 条</span><span class="b" data-h="'+(v/max*160+8)+'"></span><span class="x">'+d+'</span>';
+ c.title=d+" · "+v+" 条";ch.appendChild(c);});
+
+// table
+const tb=$("#tbl tbody");
+function render(f="all",q=""){tb.innerHTML="";
+ rows.filter(r=>(f==="all"||r[5]===f)&&(r[0]+r[1]+r[2]+r[3]+r[7]+r[8]).toLowerCase().includes(q.toLowerCase()))
+ .forEach(r=>{const s=stMap[r[5]];const tr=el("tr");
+  tr.innerHTML='<td class="name">'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td><td>'+r[4]+
+   '</td><td><span class="st '+s[1]+'">'+s[0]+'</span></td><td>'+stars(r[6])+'</td><td class="muted">'+r[7]+'</td>';
+  tb.appendChild(tr);});
+ if(!tb.children.length)tb.innerHTML='<tr><td colspan="8" class="muted" style="text-align:center;padding:26px">无匹配结果</td></tr>';
+}
+render();
+document.querySelectorAll(".btn[data-f]").forEach(b=>b.onclick=()=>{
+ document.querySelectorAll(".btn[data-f]").forEach(x=>x.classList.remove("on"));b.classList.add("on");render(b.dataset.f,$("#q").value);});
+$("#q").oninput=e=>render(document.querySelector(".btn.on").dataset.f,e.target.value);
+
+// matrix
+const mx=$("#mx");
+risks.forEach(([x,y,id,name],i)=>{const d=el("div","dot",id);
+ d.style.left="calc("+x+"% - 17px)";d.style.bottom="calc("+y+"% - 17px)";
+ d.style.background = y>70 ? "linear-gradient(140deg,#fecaca,#f87171)" : y>50 ? "linear-gradient(140deg,#fde68a,#fbbf24)" : "linear-gradient(140deg,#bae6fd,#38bdf8)";
+ d.title=id+" "+name+" · 确定性 "+x+" / 影响 "+y;d.innerHTML=id+"<span>"+name+"</span>";
+ d.style.animationDelay=(i*40)+"ms";mx.appendChild(d);});
+
+// checklists
+function checklist(node,arr,key){
+ arr.forEach(([t,d,p],i)=>{const l=el("label","chk"),cb=el("input");cb.type="checkbox";cb.dataset.k=key+i;
+  const box=el("div");const pri={p1:"高",p2:"中",p3:"常规"}[p];
+  box.innerHTML='<div class="t">'+t+'<span class="pri '+p+'">'+pri+'</span></div><div class="d">'+d+'</div>';
+  l.appendChild(cb);l.appendChild(box);
+  const saved=localStorage.getItem("rep_"+key+i);if(saved==="1")cb.checked=true;
+  cb.onchange=()=>localStorage.setItem("rep_"+key+i,cb.checked?"1":"0");
+  $(node).appendChild(l);});
+}
+checklist("#listA",actsA,"a");checklist("#listB",actsB,"b");
+
+// nav scrollspy
+const links=[...document.querySelectorAll("nav.bar a")],secs=links.map(a=>document.querySelector(a.getAttribute("href")));
+addEventListener("scroll",()=>{
+ const y=scrollY+140;let idx=0;secs.forEach((s,i)=>{if(s&&s.offsetTop<=y)idx=i});
+ links.forEach((a,i)=>a.classList.toggle("on",i===idx));
+ $("#top").classList.toggle("show",scrollY>500);
+},{passive:true});
+$("#top").onclick=()=>scrollTo({top:0,behavior:"smooth"});
+$("#pyr").onclick=e=>{const r=e.target.closest("[data-go]");if(r)location.hash="#"+r.dataset.go};
+
+// animate on view
+const io=new IntersectionObserver(es=>es.forEach(e=>{
+ if(e.isIntersecting){e.target.querySelectorAll("[data-w]").forEach(b=>b.style.width=b.dataset.w+"%");
+  e.target.querySelectorAll(".b[data-h]").forEach(b=>b.style.height=b.dataset.h+"px");io.unobserve(e.target);}
+}),{threshold:.15});
+document.querySelectorAll("section").forEach(s=>io.observe(s));
+</script>
+</body>
+</html>
